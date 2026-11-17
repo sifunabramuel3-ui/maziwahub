@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MaziwaHub Farmer Portal</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; background-color: #f4f6f9; color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #2e7d32; color: white; }
+        .controls { margin-top: 20px; display: flex; gap: 10px; }
+        button { padding: 10px 20px; background-color: #2e7d32; color: white; border: none; cursor: pointer; border-radius: 4px;}
+        button:disabled { background-color: #bbb; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <h2>🌾 MaziwaHub Farmer Delivery Ledger</h2>
+    <div id="auth-section">
+        <input type="text" id="farmerNo" placeholder="Farmer ID (e.g. F012)">
+        <input type="password" id="pass" placeholder="Password">
+        <button onclick="login()">Authenticate Session</button>
+    </div>
+
+    <div id="portal-content" style="display: none;">
+        <h3>Welcome, Farmer: <span id="display-name"></span></h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Delivery ID</th>
+                    <th>Date</th>
+                    <th>Centre</th>
+                    <th>Litres Delivered</th>
+                    <th>Rate/Litre</th>
+                    <th>Gross Payout (KES)</th>
+                </tr>
+            </thead>
+            <tbody id="delivery-rows"></tbody>
+        </table>
+        <div class="controls">
+            <button id="prevBtn" onclick="changePage(-1)">Previous</button>
+            <button id="nextBtn" onclick="changePage(1)">Next</button>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = '';
+        let currentPage = 1;
+        const limitSize = 5;
+
+        async function login() {
+            const id = document.getElementById('farmerNo').value;
+            const password = document.getElementById('pass').value;
+            try {
+                const res = await fetch('http://localhost:5000/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: id, password: password }) // Re-routed dynamically via backend lookup controller
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    currentToken = data.token;
+                    document.getElementById('auth-section').style.display = 'none';
+                    document.getElementById('portal-content').style.display = 'block';
+                    document.getElementById('display-name').innerText = data.user.FarmerName || id;
+                    loadDeliveries();
+                } else {
+                    alert('Authentication failed: ' + data.error);
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function loadDeliveries() {
+            try {
+                // Accessing restricted backend endpoint with standard custom pagination headers
+                const res = await fetch(`http://localhost:5000/api/deliveries?page=${currentPage}&limit=${limitSize}`, {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+                const rows = await res.json();
+                const tbody = document.getElementById('delivery-rows');
+                tbody.innerHTML = '';
+                
+                rows.forEach(row => {
+                    tbody.innerHTML += `<tr>
+                        <td>${row.DeliveryID}</td>
+                        <td>${row.Date.split('T')[0]}</td>
+                        <td>${row.CentreName || 'Kimilili'}</td>
+                        <td>${row.Litres} L</td>
+                        <td>${row.Rate}</td>
+                        <td><b>${row.Amount}</b></td>
+                    </tr>`;
+                });
+
+                document.getElementById('prevBtn').disabled = (currentPage === 1);
+                document.getElementById('nextBtn').disabled = (rows.length < limitSize);
+            } catch(err) { console.error(err); }
+        }
+
+        function changePage(direction) {
+            currentPage += direction;
+            loadDeliveries();
+        }
+    </script>
+</body>
+</html>
