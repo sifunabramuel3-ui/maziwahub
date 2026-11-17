@@ -16,3 +16,5 @@ Clone the repository and install the required dependencies:
 git clone https://github.com/sifunabramuel3-ui/maziwahub.git
 cd maziwahub
 npm install
+if using xammp
+/c/xampp/mysql/bin/mysql.exe -u root -p < "./src/config/schema.sql"
