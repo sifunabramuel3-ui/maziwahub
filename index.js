@@ -1,29 +1,26 @@
 import express from 'express';
-import mysql from 'mysql2/promise';
+import cors from 'cors';
 import 'dotenv/config';
+import pool from './src/config/db.js';
 
 const app = express();
-app.use(express.json()); // Parses incoming JSON payloads
 
-// Create the connection pool to MySQL
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10
-});
+// Application Global Controls
+app.use(cors());
+app.use(express.json());
 
-// A sample GET API Route
-app.get('/users', async (req, res) => {
+// Basic Server Check
+app.get('/health', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM users'); // SQL statement execution
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: error.message }); // Error middleware safety
+    // Quick test to confirm database is alive
+    await pool.query('SELECT 1');
+    res.json({ status: "healthy", database: "connected" });
+  } catch (err) {
+    res.status(500).json({ status: "unhealthy", error: err.message });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server executing safely on port ${PORT}`));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 maziwaHub server executing cleanly on port ${PORT}`);
+});
