@@ -5,7 +5,7 @@ USE maziwahub_db;
 CREATE TABLE IF NOT EXISTS farmers (
     FarmerNo VARCHAR(10) PRIMARY KEY,
     FarmerName VARCHAR(100) NOT NULL,
-    Phone VARCHAR(15) NOT NULL,
+    Phone VARCHAR(15) NOT NULL UNIQUE,
     Password VARCHAR(255) NOT NULL,
     Role VARCHAR(20) DEFAULT 'farmer'
 );
