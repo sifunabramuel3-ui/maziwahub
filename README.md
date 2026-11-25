@@ -43,3 +43,13 @@ CORS_ORIGIN=http://localhost:5500,https://your-approved-portal.example
 ```
 
 The portal served by this Express app is same-origin and does not need a CORS exception. Do not use a wildcard origin in production.
+
+
+## Authentication and access control (Task 4)
+
+- Register farmers with `POST /api/auth/register` using `farmerNo`, `name`, `phone` and `password`. Public registration always creates the `farmer` role; it cannot create clerk or manager accounts.
+- Sign in with `POST /api/auth/login`. The response contains a bearer JWT that expires after one hour.
+- Send protected requests with `Authorization: Bearer <token>`.
+- Farmer records are returned by `GET /api/farmers/my-deliveries`; the server derives the farmer number from the verified token, not from a caller-supplied ID.
+- Set `JWT_SECRET` in the local environment to a randomly generated secret of at least 32 characters. Never commit `.env` or share the secret. Existing tokens issued before the issuer check was introduced must sign in again.
+- Missing/invalid/expired tokens receive HTTP 401; authenticated users without the required role receive HTTP 403. Duplicate registrations receive HTTP 409.
