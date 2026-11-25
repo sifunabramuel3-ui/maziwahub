@@ -8,8 +8,8 @@ The project has foundational pieces for the database, delivery API, authenticati
 
 | CAT task | Status | Current evidence / gap |
 |---|---|---|
-| 1 Server & routes | Partial | Express entry point and route/controller files exist, but routes are not mounted in `index.js`. |
-| 2 Database | Partial | SQL schema, relationships, CHECK constraint and sample rows exist; requested reports and live report route are not evidenced. |
+| 1 Server & routes | Improved / untested | Routers are now mounted in `index.js`; runtime and Postman verification are still outstanding. |
+| 2 Database | Improved / untested | Schema has primary/foreign keys, a positive-litres CHECK and unique farmer phone; October totals and centre-count report endpoints/SQL are now present. Database execution is still unverified. |
 | 3 REST API & portal | Partial | Delivery endpoints and farmer delivery endpoint exist. Portal HTML/JS, pagination parameter safeguards and CORS proof are not evidenced. |
 | 4 Login & access control | Partial | Registration/login, bcrypt, parameterized queries, JWT expiry and role middleware exist. Role assignment at registration is unsafe; farmer ownership mapping needs review. |
 | 5 Testing, uploads & deployment | Incomplete / not evidenced | No test files or upload route were located. Deployment and screenshots are not evidenced. |
@@ -30,7 +30,7 @@ The project has foundational pieces for the database, delivery API, authenticati
 - `index.js` contains no API route wiring; only `GET /health` is defined.
 
 **Recommendations**
-1. Mount routes in `index.js`, e.g. `app.use('/api/deliveries', deliveriesRouter)`, and mount authentication and farmer routes using consistent prefixes.
+1. Start the server and verify each mounted route with Postman or Supertest.
 2. Confirm delivery GET authorization matches CAT requirements and whether managers/clerk are the only permitted roles.
 3. Validate required fields, numeric types, date format, centre ID and rate before SQL insertion; return 400 for invalid input instead of relying on SQL errors.
 4. Avoid returning raw database error messages to clients; log details server-side and return a generic 500 response.
@@ -46,13 +46,13 @@ The project has foundational pieces for the database, delivery API, authenticati
 - The DB connection uses a MySQL pool and environment variables (`src/config/db.js`).
 
 **Gaps / risks**
-- The schema has no unique constraint on farmer phone numbers. Duplicate numbers could still be registered.
+- `Phone` now has a UNIQUE constraint in the schema. Existing databases need an ALTER TABLE migration; rerunning the current schema file will also execute its destructive reset/seed section.
 - The schema file truncates and reseeds tables on execution. This is destructive and should be clearly separated from production migrations/seeding.
-- The report SQL and `GET /api/reports/farmer-totals` route were not found in reviewed files.
+- `src/config/reports.sql` contains October 2026 farmer totals and centre delivery-count queries. `/api/reports/farmer-totals` and `/api/reports/centre-counts` are mounted and manager-protected.
 - Centre seeds include Kimilili and Chwele only, not all six centres in the case study.
 
 **Recommendations**
-1. Add a UNIQUE index on Phone, after cleaning any duplicate data; validate phone format at application level too.
+1. Apply the unique-phone constraint to any existing database with a safe migration and validate phone format at application level too.
 2. Separate schema creation from sample-data seeding, and never run the reset/seed script against production data.
 3. Add SQL reports: October 2026 totals grouped by farmer, and delivery counts grouped by centre.
 4. Implement and mount the report endpoint and verify the JSON output.
@@ -127,11 +127,11 @@ The project has foundational pieces for the database, delivery API, authenticati
 
 ## Suggested completion checklist
 
-- [ ] Mount all routers in `index.js`.
+- [x] Mount all routers in `index.js` (runtime verification still required).
 - [ ] Confirm API routes work in Postman against the running server.
-- [ ] Enforce unique farmer phone numbers and farmer identifiers.
+- [x] Add a unique constraint on farmer phone numbers in the schema; apply a safe migration to existing databases.
 - [ ] Keep schema reset/seed scripts out of production workflows.
-- [ ] Add and run SQL reports and mount the report endpoint.
+- [x] Add SQL reports and mount manager-protected report endpoints; [ ] run and verify them against MySQL.
 - [ ] Build the farmer portal with pagination and CORS proof.
 - [ ] Remove user-controlled role selection from public registration.
 - [ ] Review access control and farmer ownership across payment/payout endpoints.
@@ -144,4 +144,4 @@ The project has foundational pieces for the database, delivery API, authenticati
 
 ## Scope and caveats
 
-This review covers files fetched from the repository's default branch, including `index.js`, `package.json`, `src/config/db.js`, `src/config/schema.sql`, `src/controllers/deliveryController.js`, `src/middleware/authMiddleware.js`, `src/routes/deliveries.js`, `src/routes/farmers.js`, `src/routes/auth.js` and `.gitignore`. Directory listings, runtime execution, Postman tests, database execution, deployment status and screenshots were not available in this review. Missing files are described as **not evidenced/found**, not proof that they cannot exist elsewhere.
+This review covers files fetched from the repository's default branch, including `index.js`, `package.json`, `src/config/db.js`, `src/config/schema.sql`, `src/config/reports.sql`, `src/controllers/deliveryController.js`, `src/controllers/reportController.js`, `src/middleware/authMiddleware.js`, `src/routes/deliveries.js`, `src/routes/farmers.js`, `src/routes/reports.js`, `src/routes/auth.js` and `.gitignore`. Directory listings, runtime execution, Postman tests, database execution, deployment status and screenshots were not available in this review. Missing files are described as **not evidenced/found**, not proof that they cannot exist elsewhere.
