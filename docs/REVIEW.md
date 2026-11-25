@@ -10,7 +10,7 @@ The project has foundational pieces for the database, delivery API, authenticati
 |---|---|---|
 | 1 Server & routes | Improved / untested | Routers are now mounted in `index.js`; runtime and Postman verification are still outstanding. |
 | 2 Database | Improved / untested | Schema has primary/foreign keys, a positive-litres CHECK and unique farmer phone; October totals and centre-count report endpoints/SQL are now present. Database execution is still unverified. |
-| 3 REST API & portal | Partial | Delivery endpoints and farmer delivery endpoint exist. Portal HTML/JS, pagination parameter safeguards and CORS proof are not evidenced. |
+| 3 REST API & portal | Implemented in source / untested | Portal is served from `public`; login uses the mounted auth path; farmer-only deliveries use JWT identity; pagination is validated and returns metadata; CORS uses an allow-list. Browser/Postman verification remains outstanding. |
 | 4 Login & access control | Partial | Registration/login, bcrypt, parameterized queries, JWT expiry and role middleware exist. Role assignment at registration is unsafe; farmer ownership mapping needs review. |
 | 5 Testing, uploads & deployment | Incomplete / not evidenced | No test files or upload route were located. Deployment and screenshots are not evidenced. |
 
@@ -67,11 +67,11 @@ The project has foundational pieces for the database, delivery API, authenticati
 - The delivery list query joins farmers and centres.
 
 **Gaps / risks**
-- No farmer portal HTML/JavaScript page using `fetch()` was found.
-- Pagination inputs are not bounded/validated. Non-numeric, negative or excessively large values should be rejected or clamped.
-- The delivery list route does not return total row count or pagination metadata, which may complicate portal navigation.
+- `public/portal.html` now provides sign-in, a five-row table, previous/next pagination, loading/error/empty states and sign-out using same-origin `fetch()`.
+- Both delivery-list endpoints reject invalid pagination and cap page size at 100.
+- Both endpoints return `data` plus `page`, `limit`, `total` and `totalPages` metadata.
 - The farmer route uses `req.user.id` against `FarmerNo`; this matches the login token payload currently using FarmerNo, but confirm that all token sources use this exact identity format.
-- CORS is globally open (`cors()`). For deployment, configure permitted origins intentionally.
+- CORS now uses the `CORS_ORIGIN` environment allow-list (default `http://localhost:5500`).
 
 **Recommendations**
 1. Build the portal with a five-row table, Next/Previous controls, loading/error states and fetch requests with page/limit.
@@ -144,4 +144,4 @@ The project has foundational pieces for the database, delivery API, authenticati
 
 ## Scope and caveats
 
-This review covers files fetched from the repository's default branch, including `index.js`, `package.json`, `src/config/db.js`, `src/config/schema.sql`, `src/config/reports.sql`, `src/controllers/deliveryController.js`, `src/controllers/reportController.js`, `src/middleware/authMiddleware.js`, `src/routes/deliveries.js`, `src/routes/farmers.js`, `src/routes/reports.js`, `src/routes/auth.js` and `.gitignore`. Directory listings, runtime execution, Postman tests, database execution, deployment status and screenshots were not available in this review. Missing files are described as **not evidenced/found**, not proof that they cannot exist elsewhere.
+This review covers files fetched from the repository's default branch, including `index.js`, `package.json`, `src/config/db.js`, `src/config/schema.sql`, `src/config/reports.sql`, `src/controllers/deliveryController.js`, `src/controllers/reportController.js`, `src/middleware/authMiddleware.js`, `src/routes/deliveries.js`, `src/routes/farmers.js`, `src/routes/reports.js`, `src/routes/auth.js`, `public/portal.html` and `.gitignore`. Directory listings, runtime execution, Postman tests, database execution, deployment status and screenshots were not available in this review. Missing files are described as **not evidenced/found**, not proof that they cannot exist elsewhere.
