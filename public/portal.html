@@ -1,104 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>MaziwaHub Farmer Portal</title>
-    <style>
-        body { font-family: sans-serif; margin: 40px; background-color: #f4f6f9; color: #333; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #2e7d32; color: white; }
-        .controls { margin-top: 20px; display: flex; gap: 10px; }
-        button { padding: 10px 20px; background-color: #2e7d32; color: white; border: none; cursor: pointer; border-radius: 4px;}
-        button:disabled { background-color: #bbb; cursor: not-allowed; }
-    </style>
-</head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MaziwaHub | Farmer Portal</title>
+<style>
+:root{font-family:Arial,sans-serif;color:#20302a;background:#f4f7f5}*{box-sizing:border-box}body{margin:0}
+header{background:#176b3a;color:white;padding:22px max(20px,calc((100% - 1050px)/2))}
+main{max-width:1050px;margin:32px auto;padding:0 18px}.panel{background:white;border:1px solid #e0e8e2;border-radius:12px;padding:22px;box-shadow:0 4px 16px #163b2410}
+h1{margin:0 0 6px;font-size:25px}h2{margin-top:0}.muted{color:#64746a}label{display:block;margin:12px 0 6px;font-weight:600}
+input{width:100%;max-width:360px;padding:11px;border:1px solid #bdcabe;border-radius:6px}
+button{border:0;border-radius:6px;background:#176b3a;color:white;padding:10px 17px;cursor:pointer}button:disabled{background:#aab5ad;cursor:not-allowed}
+.actions{display:flex;gap:10px;margin-top:16px;align-items:center}.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;margin-top:16px;min-width:650px}th,td{border-bottom:1px solid #e5ebe6;text-align:left;padding:12px 10px}th{background:#edf5ef;color:#245b39}
+#message{min-height:24px;margin-top:12px}.error{color:#b42318}.success{color:#176b3a}#portalContent{display:none}
+@media(max-width:600px){main{margin-top:18px}.panel{padding:16px}}
+</style></head>
 <body>
-    <h2>🌾 MaziwaHub Farmer Delivery Ledger</h2>
-    <div id="auth-section">
-        <input type="text" id="farmerNo" placeholder="Farmer ID (e.g. F012)">
-        <input type="password" id="pass" placeholder="Password">
-        <button onclick="login()">Authenticate Session</button>
-    </div>
-
-    <div id="portal-content" style="display: none;">
-        <h3>Welcome, Farmer: <span id="display-name"></span></h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Delivery ID</th>
-                    <th>Date</th>
-                    <th>Centre</th>
-                    <th>Litres Delivered</th>
-                    <th>Rate/Litre</th>
-                    <th>Gross Payout (KES)</th>
-                </tr>
-            </thead>
-            <tbody id="delivery-rows"></tbody>
-        </table>
-        <div class="controls">
-            <button id="prevBtn" onclick="changePage(-1)">Previous</button>
-            <button id="nextBtn" onclick="changePage(1)">Next</button>
-        </div>
-    </div>
-
-    <script>
-        let currentToken = '';
-        let currentPage = 1;
-        const limitSize = 5;
-
-        async function login() {
-            const id = document.getElementById('farmerNo').value;
-            const password = document.getElementById('pass').value;
-            try {
-                const res = await fetch('http://localhost:5000/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone: id, password: password }) // Re-routed dynamically via backend lookup controller
-                });
-                const data = await res.json();
-                if(res.ok) {
-                    currentToken = data.token;
-                    document.getElementById('auth-section').style.display = 'none';
-                    document.getElementById('portal-content').style.display = 'block';
-                    document.getElementById('display-name').innerText = data.user.FarmerName || id;
-                    loadDeliveries();
-                } else {
-                    alert('Authentication failed: ' + data.error);
-                }
-            } catch(e) { console.error(e); }
-        }
-
-        async function loadDeliveries() {
-            try {
-                // Accessing restricted backend endpoint with standard custom pagination headers
-                const res = await fetch(`http://localhost:5000/api/deliveries?page=${currentPage}&limit=${limitSize}`, {
-                    headers: { 'Authorization': `Bearer ${currentToken}` }
-                });
-                const rows = await res.json();
-                const tbody = document.getElementById('delivery-rows');
-                tbody.innerHTML = '';
-                
-                rows.forEach(row => {
-                    tbody.innerHTML += `<tr>
-                        <td>${row.DeliveryID}</td>
-                        <td>${row.Date.split('T')[0]}</td>
-                        <td>${row.CentreName || 'Kimilili'}</td>
-                        <td>${row.Litres} L</td>
-                        <td>${row.Rate}</td>
-                        <td><b>${row.Amount}</b></td>
-                    </tr>`;
-                });
-
-                document.getElementById('prevBtn').disabled = (currentPage === 1);
-                document.getElementById('nextBtn').disabled = (rows.length < limitSize);
-            } catch(err) { console.error(err); }
-        }
-
-        function changePage(direction) {
-            currentPage += direction;
-            loadDeliveries();
-        }
-    </script>
-</body>
-</html>
+<header><h1>MaziwaHub Farmer Portal</h1><div>View your milk delivery records</div></header>
+<main>
+<section class="panel" id="loginPanel"><h2>Farmer sign in</h2><p class="muted">Use your registered phone number or Farmer ID.</p>
+<form id="loginForm"><label for="identity">Phone number or Farmer ID</label><input id="identity" autocomplete="username" required placeholder="e.g. 0700000111 or F012">
+<label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required>
+<div class="actions"><button id="loginButton" type="submit">Sign in</button></div></form><p id="loginMessage" role="status" aria-live="polite"></p></section>
+<section class="panel" id="portalContent"><h2>Your delivery history</h2><p class="muted">Signed in as <strong id="farmerName"></strong></p>
+<div class="table-wrap"><table><thead><tr><th>Delivery ID</th><th>Date</th><th>Collection centre</th><th>Litres</th><th>Rate (KES)</th><th>Amount (KES)</th></tr></thead><tbody id="deliveryRows"></tbody></table></div>
+<div class="actions"><button id="previousButton" type="button" disabled>Previous</button><span id="pageInfo" class="muted">Page 1</span><button id="nextButton" type="button" disabled>Next</button><button id="logoutButton" type="button">Sign out</button></div><p id="deliveryMessage" role="status" aria-live="polite"></p></section>
+</main>
+<script>
+const pageSize=5;let token='';let currentPage=1;let totalPages=0;
+const loginPanel=document.getElementById('loginPanel'),portalContent=document.getElementById('portalContent');
+const loginMessage=document.getElementById('loginMessage'),deliveryMessage=document.getElementById('deliveryMessage'),loginButton=document.getElementById('loginButton');
+document.getElementById('loginForm').addEventListener('submit',async(event)=>{
+ event.preventDefault();loginMessage.textContent='';loginButton.disabled=true;
+ const identity=document.getElementById('identity').value.trim(),password=document.getElementById('password').value;
+ try{
+  const response=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:identity,password})});
+  const result=await response.json();if(!response.ok)throw new Error(result.error||'Sign in failed.');
+  if(result.user.Role!=='farmer')throw new Error('This portal is for farmer accounts only.');
+  token=result.token;currentPage=1;document.getElementById('farmerName').textContent=result.user.FarmerName;
+  loginPanel.style.display='none';portalContent.style.display='block';await loadDeliveries();
+ }catch(error){loginMessage.textContent=error.message||'Unable to sign in.';loginMessage.className='error';}
+ finally{loginButton.disabled=false;}
+});
+async function loadDeliveries(){
+ deliveryMessage.textContent='Loading your deliveries...';deliveryMessage.className='muted';
+ document.getElementById('previousButton').disabled=true;document.getElementById('nextButton').disabled=true;
+ try{
+  const response=await fetch('/api/farmers/my-deliveries?page='+currentPage+'&limit='+pageSize,{headers:{Authorization:'Bearer '+token}});
+  const result=await response.json();if(!response.ok)throw new Error(result.error||'Could not load deliveries.');
+  const tbody=document.getElementById('deliveryRows');tbody.replaceChildren();
+  result.data.forEach(row=>{const tr=document.createElement('tr');[row.DeliveryID,String(row.Date).slice(0,10),row.CentreName,row.Litres,row.Rate,Number(row.Amount).toFixed(2)].forEach(value=>{const td=document.createElement('td');td.textContent=value??'';tr.appendChild(td);});tbody.appendChild(tr);});
+  if(!result.data.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=6;td.textContent='No delivery records found.';tr.appendChild(td);tbody.appendChild(tr);}
+  totalPages=result.pagination.totalPages;document.getElementById('pageInfo').textContent='Page '+currentPage+' of '+Math.max(totalPages,1)+' — '+result.pagination.total+' records';
+  document.getElementById('previousButton').disabled=currentPage<=1;document.getElementById('nextButton').disabled=currentPage>=totalPages;deliveryMessage.textContent='';
+ }catch(error){deliveryMessage.textContent=error.message||'Unable to load deliveries.';deliveryMessage.className='error';}
+}
+document.getElementById('previousButton').addEventListener('click',()=>{if(currentPage>1){currentPage--;loadDeliveries();}});
+document.getElementById('nextButton').addEventListener('click',()=>{if(currentPage<totalPages){currentPage++;loadDeliveries();}});
+document.getElementById('logoutButton').addEventListener('click',()=>{token='';currentPage=1;document.getElementById('loginForm').reset();document.getElementById('deliveryRows').replaceChildren();portalContent.style.display='none';loginPanel.style.display='block';loginMessage.textContent='You have signed out.';loginMessage.className='success';});
+</script></body></html>
