@@ -10,9 +10,17 @@ import reportRoutes from './src/routes/reports.js';
 
 const app = express();
 
-// Global middleware must run before routes so request bodies are available.
-app.use(cors());
+// Allow configured browser origins; same-origin requests and tools without Origin are allowed.
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5500')
+  .split(',').map((origin) => origin.trim()).filter(Boolean);
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(null, false);
+  }
+}));
 app.use(express.json());
+app.use(express.static('public'));
 
 // API route mounting
 app.use('/api/auth', authRoutes);
