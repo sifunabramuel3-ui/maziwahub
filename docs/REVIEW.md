@@ -11,7 +11,7 @@ The project has foundational pieces for the database, delivery API, authenticati
 | 1 Server & routes | Improved / untested | Routers are now mounted in `index.js`; runtime and Postman verification are still outstanding. |
 | 2 Database | Improved / untested | Schema has primary/foreign keys, a positive-litres CHECK and unique farmer phone; October totals and centre-count report endpoints/SQL are now present. Database execution is still unverified. |
 | 3 REST API & portal | Implemented in source / untested | Portal is served from `public`; login uses the mounted auth path; farmer-only deliveries use JWT identity; pagination is validated and returns metadata; CORS uses an allow-list. Browser/Postman verification remains outstanding. |
-| 4 Login & access control | Partial | Registration/login, bcrypt, parameterized queries, JWT expiry and role middleware exist. Role assignment at registration is unsafe; farmer ownership mapping needs review. |
+| 4 Login & access control | Implemented in source / untested | Public registration is farmer-only, validates inputs, hashes passwords with bcrypt, handles duplicate records, and login issues a one-hour JWT only when a sufficiently long `JWT_SECRET` is configured. Middleware verifies token signature/issuer/expiry and enforces roles. Farmer records are queried using the verified token identity. Runtime/security tests remain outstanding. |
 | 5 Testing, uploads & deployment | Incomplete / not evidenced | No test files or upload route were located. Deployment and screenshots are not evidenced. |
 
 ## Findings by task
@@ -90,19 +90,19 @@ The project has foundational pieces for the database, delivery API, authenticati
 - Roles currently supported by the middleware are checked against the token payload.
 
 **Critical security issue**
-- The register endpoint accepts `role` from the request body and inserts it directly. An untrusted registrant could attempt to register as manager or clerk. Role must not be user-controlled during public registration. Assign farmer by default; privileged roles should be provisioned by an authorized administrator.
+- Public registration now rejects a non-farmer `role` and always inserts `farmer`; manager/clerk accounts must be provisioned through a trusted administrative process, not public registration.
 
 **Additional risks**
-- No input validation is evident for registration (required fields, phone format, password length, role).
-- Phone and FarmerNo are checked for duplicates in application code but are not protected by unique constraints in the SQL schema; concurrent registrations may still race.
-- Token verification responds with 403 for an invalid/expired token; many API conventions use 401 for missing/invalid authentication and 403 for authenticated users lacking permission. Document and consistently apply the chosen behavior.
-- Role middleware does not by itself prove farmer payment ownership for every payment endpoint. The farmer-specific deliveries route does use token identity, but no payment/payout route was found.
+- Registration validates required fields, farmer number, name, phone format and password length. Login validates required credentials. Passwords are hashed with bcrypt (12 salt rounds); raw passwords and hashes are not returned.
+- `FarmerNo` is the primary key and `Phone` is UNIQUE in the schema. Registration also handles duplicate-key errors to cover concurrent requests.
+- Missing, malformed, invalid or expired bearer tokens return HTTP 401; authenticated users without the required role receive HTTP 403. Newly issued tokens include the `maziwahub` issuer and expire after one hour.
+- `GET /api/farmers/my-deliveries` filters by `req.user.id` from the verified JWT and includes the delivery `Amount`; it does not accept a farmer ID from the caller. No separate payment/payout endpoint was found in the reviewed routes, so a distinct payments endpoint cannot yet be assessed.
 
 **Recommendations**
-1. Ignore or reject role in public registration and always create role='farmer'.
-2. Add unique constraints on phone and farmer number and handle duplicate-key errors.
-3. Validate registration/login fields and avoid exposing internal error messages.
-4. Review every endpoint returning payments and enforce owner-specific queries.
+1. Keep public registration farmer-only; provision privileged roles only through an authorized administrator.
+2. Keep database uniqueness constraints on phone and farmer number and handle duplicate-key errors.
+3. Keep registration/login validation and generic client errors; store a random secret of at least 32 characters in `JWT_SECRET`.
+4. If a separate payments endpoint is added, enforce the same owner-specific JWT filter for every farmer payment query.
 5. Demonstrate F012 cannot access F047's records, and provide sanitized SQL evidence showing bcrypt hashes rather than plaintext passwords.
 
 ### Task 5 — Testing, uploads and deployment (6 marks)
@@ -133,8 +133,8 @@ The project has foundational pieces for the database, delivery API, authenticati
 - [ ] Keep schema reset/seed scripts out of production workflows.
 - [x] Add SQL reports and mount manager-protected report endpoints; [ ] run and verify them against MySQL.
 - [ ] Build the farmer portal with pagination and CORS proof.
-- [ ] Remove user-controlled role selection from public registration.
-- [ ] Review access control and farmer ownership across payment/payout endpoints.
+- [x] Remove user-controlled privileged role selection from public registration.
+- [x] Enforce JWT-based farmer ownership on the farmer delivery/amount records endpoint; [ ] add/test a separate payment endpoint if required by the final system scope.
 - [ ] Add automated delivery tests and show all passing.
 - [ ] Implement secure certificate uploads with the specified restrictions.
 - [ ] Align health endpoint response with the assignment.
