@@ -6,6 +6,7 @@ import pool from './src/config/db.js';
 import authRoutes from './src/routes/auth.js';
 import deliveryRoutes from './src/routes/deliveries.js';
 import farmerRoutes from './src/routes/farmers.js';
+import reportRoutes from './src/routes/reports.js';
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/deliveries', deliveryRoutes);
 app.use('/api/farmers', farmerRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Basic server/database health check
 app.get('/health', async (req, res) => {
